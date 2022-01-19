@@ -6,6 +6,8 @@ import com.example.springproject.domain.FileData;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,7 +24,7 @@ public class InfoServiceImpl implements InfoService{
     public String type;
     public ArrayList<Data> fileDataList;
     public ArrayList<Data> dataList;
-    public final static String path="D:\\SUSTech\\OOAD\\spring-project-main-java2\\spring-project-main\\spring-project-main\\owid-covid-data.csv";
+    public final static String path="owid-covid-data.csv";
     public InfoServiceImpl(){
         fileDataList=new ArrayList<>();
         int i,j,k;
@@ -276,8 +278,9 @@ public class InfoServiceImpl implements InfoService{
                             builder.append(",");
                         }
                     }
-                    writer.println(builder);
-
+                    synchronized (dataList){
+                        writer.println(builder);
+                    }
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
@@ -363,6 +366,27 @@ public class InfoServiceImpl implements InfoService{
         }
         return strings;
     }
+
+    @Override
+    public ArrayList<ArrayList<String>> getOnOneMonth(LocalDate date) {
+        ArrayList<ArrayList<String>> ans=new ArrayList<>();
+        fileDataList.forEach((data -> {
+            FileData fileData=(FileData) data;
+            LocalDate here=LocalDate.parse(fileData.date, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            if(here.getYear()==date.getYear()&&here.getMonth()==date.getMonth()){
+                ArrayList<String> a=new ArrayList<>();
+                a.add(fileData.total_cases);
+                a.add(fileData.new_cases);
+                a.add(fileData.total_deaths);
+                a.add(fileData.new_deaths);
+                a.add(fileData.location);
+                a.add(Integer.toString(here.getDayOfMonth()));
+                ans.add(a);
+            }
+        }));
+        return ans;
+    }
+
     static String normalizeString(String a){
         if(a.startsWith("-")){
             return "0";
