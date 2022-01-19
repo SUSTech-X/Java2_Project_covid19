@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Animation</title>
+    <link rel="stylesheet" type="text/css" href="../bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="../js/jquery-3.6.0.min.js" type="text/javascript"></script>
+    <script src="../bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="../js/axios.min.js" type="text/javascript"></script>
+    <script src="../js/vue.min.js" type="text/javascript"></script>
+    <script src="../js/echarts.min.js" type="text/javascript"></script>
+    <script src="../js/lodash.min.js" type="text/javascript"></script>
+    <script src="../js/world1.js" type="text/javascript"></script>
+    <script src="../js/tableExport.min.js" type="text/javascript"></script>
+    <script src="../js/jquery.base64.js" type="text/javascript"></script>
+</head>
+<body>
+<a href="displayAllFileData.html">
+    <input type="button" class="btn" value="BACK">
+</a>
+    <div id="app">
+        <div class="container">
+
+            <div class="row">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h4 class="text-center"><b>Total Confirmed Cases-Animation</b></h4>
+                        <form action="#" class="form-inline" role="form">
+                            <div class="form-group">
+                                <label for="graph-2-1-dateInput" class="control-label">Date: </label>
+                                <input type="month" id="graph-2-1-dateInput" class="form-control" v-model="page2Graph1Date">
+                                <button class="btn btn-primary" @click="page2Graph1Render()">Enter</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="panel-body">
+                        <div id="graph-2-1" style="width: 1135px; height: 500px;"></div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <script>
+        BASE_URL = "http://localhost:8088";
+
+        const app = new Vue({
+            el: "#app",
+            data: {
+                /*
+                dataSource:
+                1 - 本地OWID
+                2 - 本地WHO
+                3 - 最新OWID
+                4 - 最新WHO
+                 */
+                dataSource: 1,
+                page: 2,
+
+
+                //page-2
+                page2Graph1Date: "2020-03",
+                page2Graph2Date: "2020-04",
+                page2Graph2CountryList: ["Australia", "Canada", "China"],
+                page2Graph2Country: '',
+                page2Graph3CountryList: ["France", "Germany", "Russia"],
+                page2Graph3Country: '',
+
+
+
+            },
+            watch: {
+                searchCountryName: function (newVal, oldVal) {
+                    this.debouncedSearchCountry();
+                }
+            },
+            computed: {
+              dataSourceText: function () {
+                  if (this.dataSource === 1) return "本地-OWID";
+                  else if (this.dataSource === 2) return "本地-WHO";
+                  else if (this.dataSource === 3) return "在线-OWID";
+                  else return "在线-WHO";
+              }
+            },
+            created: function () {
+                this.debouncedSearchCountry = _.debounce(this.searchCountry, 500);
+                const vm = this;
+                axios.get("world.json").then(function (response) {
+                    vm.nameMap = response.data.namemap;
+                })
+            },
+            methods: {
+
+                page2Render: function () {
+                    this.page2Graph1Render();
+                    this.page2Graph2Render();
+                    this.page2Graph3Render();
+                },
+
+                page2Graph1Render: function () {
+                    let vm = this;
+                    let url = '';
+                    switch (this.dataSource) {
+                        case 1:
+                            url = BASE_URL + "/animation/?str=";
+                            break;
+                    }
+                    axios.get(url + vm.page2Graph1Date + "-01")
+                        .then(function (response) {
+                            let data = response.data;
+                            const countryColors = {
+                                World: '#e00d2c',
+                                Europe: '#45f51f',
+                                Asia: '#5792e5',
+                                Australia: '#3333e0',
+                                Canada: '#f00',
+                                China: '#ffde00',
+                                Cuba: '#708f00',
+                                Finland: '#5792e5',
+                                France: '#ed2939',
+                                Germany: '#000',
+                                Iceland: '#003897',
+                                India: '#f93',
+                                Japan: '#bc002d',
+                                'North Korea': '#024fa2',
+                                'South Korea': '#000',
+                                'New Zealand': '#00247d',
+                                Norway: '#d06566',
+                                Poland: '#71e75c',
+                                Russia: '#d5ad1e',
+                                Turkey: '#e30a17',
+                                'United Kingdom': '#e3ee57',
+                                'United States': '#9f62c6'
+                            };
+                            const days = [];
+                            for (let i = 0; i < data.length; ++i) {
+                                if (days.length === 0 || days[days.length - 1] !== data[i][5]) {
+                                    days.push(data[i][5]);
+                                }
+                            }
+                            let chart21Div = document.getElementById("graph-2-1");
+                            chart21Div.removeAttribute('_echarts_instance_');
+                            let chart21 = echarts.init(chart21Div);
+                            let option = {
+                                grid: {
+                                    top: 10,
+                                    bottom: 30,
+                                    left: 150,
+                                    right: 80
+                                },
+                                xAxis: {
+                                    max: 'dataMax',
+                                    axisLabel: {
+                                        formatter: function (n) {
+                                            return Math.round(n) + '';
+                                        }
+                                    }
+                                },
+                                dataset: {
+                                    source: data.slice(1).filter(function (d) {
+                                        return d[5] === 1;
+                                    })
+                                },
+                                yAxis: {
+                                    type: 'category',
+                                    inverse: true,
+                                    max: 10,
+                                    axisLabel: {
+                                        show: true,
+                                        fontSize: 14,
+                                        formatter: function (value) {
+                                            return value + '{flag|' + '}';
+                                        },
+                                        rich: {
+                                            flag: {
+                                                fontSize: 25,
+                                                padding: 5
+                                            }
+                                        }
+                                    },
+                                    animationDuration: 300,
+                                    animationDurationUpdate: 300
+                                },
+                                series: [
+                                    {
+                                        realtimeSort: true,
+                                        seriesLayoutBy: 'column',
+                                        type: 'bar',
+                                        itemStyle: {
+                                            color: function (param) {
+                                                return countryColors[param.value[4]] || '#5470c6';
+                                            }
+                                        },
+                                        encode: {
+                                            x: 0,
+                                            y: 4
+                                        },
+                                        label: {
+                                            show: true,
+                                            precision: 1,
+                                            position: 'right',
+                                            valueAnimation: true,
+                                            fontFamily: 'monospace'
+                                        }
+                                    }
+                                ],
+                                toolbox: {
+                                    show: true,
+                                    feature: {
+                                        saveAsImage: {show: true}
+                                    }
+                                },
+                                animationDuration: 0,
+                                animationDurationUpdate: 2000,
+                                animationEasing: 'linear',
+                                animationEasingUpdate: 'linear',
+                                graphic: {
+                                    elements: [
+                                        {
+                                            type: 'text',
+                                            right: 160,
+                                            bottom: 60,
+                                            style: {
+                                                text: 1,
+                                                font: 'bolder 80px monospace',
+                                                fill: 'rgba(100, 100, 100, 0.25)'
+                                            },
+                                            z: 100
+                                        }
+                                    ]
+                                }
+                            };
+                            chart21.setOption(option);
+                            for (let i = 1; i < days.length - 1; ++i) {
+                                (function (i) {
+                                    setTimeout(function () {
+                                        updateDay(days[i + 1]);
+                                    }, (i - 1) * 2000);
+                                })(i);
+                            }
+                            function updateDay(day) {
+                                option.series[0].data = data.slice(1).filter(function (d) {
+                                    return d[5] === day;
+                                });
+                                option.graphic.elements[0].style.text = vm.page2Graph1Date + "-" + day;
+                                chart21.setOption(option);
+                            }
+
+                        })
+                },
+
+
+
+
+                page2Graph2ModifyCountryList: function (flag) {
+                    if (flag === 0) {
+                        this.page2Graph2CountryList.push(this.page2Graph2Country);
+                    } else {
+                        let index = this.page2Graph2CountryList.indexOf(this.page2Graph2Country);
+                        if (index !== -1) {
+                            this.page2Graph2CountryList.splice(index, 1);
+                        }
+                    }
+                },
+
+                page2Graph3ModifyCountryList: function (flag) {
+                    if (flag === 0) {
+                        this.page2Graph3CountryList.push(this.page2Graph3Country);
+                    } else {
+                        let index = this.page2Graph3CountryList.indexOf(this.page2Graph3Country);
+                        if (index !== -1) {
+                            this.page2Graph3CountryList.splice(index, 1);
+                        }
+                    }
+                },
+
+
+
+                exportTable: function (type) {
+                    if (this.dataSource === 1 || this.dataSource === 3) {
+                        $("#table1").tableExport({
+                            filename:'OWID_Table',
+                            format: type
+                        });
+                    } else {
+                        $("#table2").tableExport({
+                            filename:'WHO_Table',
+                            format: type
+                        });
+                    }
+
+                }
+            }
+        });
+    </script>
+</body>
+</html>

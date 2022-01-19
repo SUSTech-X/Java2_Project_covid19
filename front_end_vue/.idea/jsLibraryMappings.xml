@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JavaScriptLibraryMappings">
+    <file url="PROJECT" libraries="{Chart, Chart.js, axios, charts.css, data, echarts, element-ui, exporting, highmaps, index, jquery-3.2.1, maps, vue, vue-chartjs, world-highres}" />
+  </component>
+</project>

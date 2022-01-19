@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../images/icon.ico" rel="icon" type="image/x-icon"/>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>
+    <script src="//unpkg.com/element-ui@2.15.7/lib/index.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+    <!--    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/charts.css/dist/charts.min.css">-->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+    <title>Covid-19 Data Analysis</title>
+</head>
+<body>
+
+
+<div id="app">
+
+
+    <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="displayAllFileData.html">FileData</a></li>
+        <li><a class="active" href="displayOutBreakData.html">OutBreak</a></li>
+        <li><a href="#Web2">Web2</a></li>
+        <li style="float:right"><a class="active" href="#about">About</a></li>
+    </ul>
+
+
+
+        <br>
+        <div style="height: 50px">
+            Enter the column you want to filter:
+            <select v-model="columnName">
+                <option v-for="item in options">{{item}}</option>
+            </select>
+        </div>
+
+        <div style="height: 50px">
+            Enter the value you want to search:
+            <select v-if="columnName==='countryName'" v-model="inputValue">
+                <option v-for="item in locations">{{item}}</option>
+            </select>
+
+            <input v-else type="text" placeholder="inputValue" v-model="inputValue">
+
+
+        </div>
+
+
+        <input type="button" class="btn" value="search" @click="searchFileData">
+        <input type="button" class="btn" value="show-Last-One" @click="showLastOne">
+        <input type="button" class="btn" value="initial" @click="getAll">
+        <input type="button" class="btn" value="save" @click="saveText">
+        <input type="button" class="btn" value="chart" @click="chooseTableOrChart">
+
+
+
+    <el-tooltip :content="'chart or table'" placement="top">
+        <el-switch
+                v-model="display"
+                active-color="#13ce66"
+                inactive-color="#ff4949"
+                active-value="chart"
+                inactive-value="table" style="z-index: -1;">
+        </el-switch>
+    </el-tooltip>
+
+        <input v-if="display==='chart'" type="button" class="btn" value="line_chart" @click="createLineChart(columnName, inputValue)">
+        <input v-if="display==='chart'" type="button" class="btn" value="bar-chart" @click="createBarChart(columnName, inputValue)">
+        <input v-if="display==='chart'" type="button" class="btn" value="pie-chart" @click="createPieChart(columnName, inputValue)">
+
+        <br>
+
+
+    <div v-if="display==='chart' && columnName==='countryName' && type === 'line'" style="width:1400px;height:600px;">
+        <canvas id="mylineChart"></canvas>
+    </div>
+    <div v-if="display==='chart' &&  type === 'bar'" style="width:1400px;height:600px;">
+        <canvas id="mybarChart"></canvas>
+    </div>
+    <div v-if="display==='chart' && type === 'pie'" style="width:1400px;height:600px;">
+        <canvas id="mypieChart"></canvas>
+    </div>
+
+    <div v-if="display==='table'">
+
+        <table class="hovertable">
+            <tr>
+
+                <th>countryName<br><i class="el-icon-sort" @click="sort('countryName')"></i></th>
+                <th>cumulativeConfirmed<br><i class="el-icon-sort" @click="sort('cumulativeConfirmed')"></i></th>
+                <th>dieNum<br><i class="el-icon-sort" @click="sort('dieNum')"></i></th>
+                <th>cureNum<br><i class="el-icon-sort" @click="sort('cureNum')"></i></th>
+                <th>existConfirmed<br><i class="el-icon-sort" @click="sort('existConfirmed')"></i></th>
+                <th>diePercentage<br><i class="el-icon-sort" @click="sort('diePercentage')"></i></th>
+                <th>recoverPercentage<br><i class="el-icon-sort" @click="sort('recoverPercentage')"></i></th>
+
+
+            </tr>
+            <tr onmouseover="this.style.backgroundColor='#ffff66';" onmouseout="this.style.backgroundColor='#d4e3e5';"
+                v-for="item in arrInfo">
+                <td>{{item.countryName}}</td>
+                <td>{{item.cumulativeConfirmed}}</td>
+                <td>{{item.dieNum}}</td>
+                <td>{{item.cureNum}}</td>
+                <td>{{item.existConfirmed}}</td>
+                <td>{{item.diePercentage}}</td>
+                <td>{{item.recoverPercentage}}</td>
+
+            </tr>
+
+        </table>
+    </div>
+    <!--    <div style="width:1500px;height:1000px;">-->
+    <!--        <canvas id="myChart"></canvas>-->
+    <!--    </div>-->
+
+</div>
+
+<script src="../js/displayAllOutBreakData.js">
+</script>
+<script>
+    if (app.arrInfo.length === 0) {
+        app.getAll();
+    }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+</head>
+<style>
+    #container {
+        height: 800px;
+        min-width: 800px;
+        max-width: 800px;
+        margin: 0 auto;
+        text-align:center;
+    }
+    .loading {
+        margin-top: 10em;
+        text-align: center;
+        color: gray;
+    }
+    .error {
+        margin-top: 200px;
+    }
+</style>
+
+<body>
+<a href="displayAllFileData.html">
+    <input type="button" class="btn" value="BACK">
+</a>
+<!-- 地图数据信息，用于地图数据地址与名字的映射 -->
+<script src="//code.highcharts.com.cn/mapdata/maps.js"></script>
+<div id="container">加载地图数据中</div>
+
+<script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+<script src="https://code.highcharts.com.cn/highmaps/highmaps.js"></script>
+
+<script>
+
+    // 动态加载 Script
+    function loadScript(url, callback){
+        var script = document.createElement("script");
+        script.type = "text/javascript";
+        if (script.readyState){  //IE
+            script.onreadystatechange = function(){
+                if (script.readyState == "loaded" ||
+                    script.readyState == "complete"){
+                    script.onreadystatechange = null;
+                    callback();
+                }
+            };
+        } else {  //Others
+            script.onload = function(){
+                callback();
+            };
+        }
+        script.src = url;
+        document.getElementsByTagName("head")[0].appendChild(script);
+    }
+    /*
+     * 获取链接的 map 参数
+     * map 参数值为地图的路径，所有文件路径参考 https://code.highcharts.com.cn/mapdata/index.html
+     */
+    function getMapName(name) {
+        var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)"),
+            r = window.location.search.substr(1).match(reg),
+            defaultMap = {
+                path: 'custom/world',
+                name: 'Covid-19',
+                chineseName: 'Covid-19'
+            };
+        if(r!==null) {
+            var path = unescape(r[2]);
+            for(var key in Highcharts.mapsInfo) {
+                if(Highcharts.mapsInfo[key][path]) {
+                    return {
+                        path: path,
+                        name: Highcharts.mapsInfo[key][path].name,
+                        cname: Highcharts.mapsInfo[key][path].chineseName || ''
+                    };
+                }
+            }
+        }
+        return defaultMap;
+    }
+
+    var data = [0,0,45970785,1723559,22243,34285814,7268527,1,97320,1090651,0,0,21810855,2,
+        2787276,3807211,5011148,0,87638,0,9100442,742170,0,390727,0,0,0,0,0,1722468,3714,38215,
+        4823,2171990,89014,3,304291,4995,8032958,1569539,12559,0,207280,2669,276829,1,157531,
+        4244358,17698,1171512,57329,2471642,472664,8,0,4,1695048,1912024,5840,193969,4058,17763,
+        4771965,37653,6,198374,124017,541073,4259,52141,8377984,27,5547,1020264,531370,17486,
+        21635,185963,946145,5002387,0,26154,5288807,548617,1273560,9791,739905,253310,2201796,
+        381667,23960,29715,64433,118522,921122,151292,559698,24749,211961,5924638,113422,6397,
+        6134,470348,26798,2922116,11518,40433,57470,412678,4607958,1360650,445594,0,366386,35548,
+        375381,500073,35525,13368,16422,219139,126171,61796,308326,0,0,209734,0,37320,206452,
+        408715,365167,6834,130077,335850,601572,252758,862541,43146,3414,185300,393899,0,360317,
+        99698,21998,513584,102499,17323,0,1142749,144314,26079,40271,156250,3058108,483773,0,
+        602492,239247,3662,830981,0,863419,1648031,6366,81683,15516,0,5812,13130,2055248,719247,
+        9965,872558,5069,160762,642024,13478,20039,49019,1327458,16073,73917,30653,132977,3025247,
+        202552,461006,600168,1762902,14793,128927,357338,712747,2621,337768,12361,186594,22351,
+        6595,952001,515859,172030,407151,20,43626,13492,331017,181259,812570
+
+    ]
+
+    // 地图路径，参考 https://code.highcharts.com.cn/mapdata/index.html
+    var map = getMapName('map'),
+        url = '//code.highcharts.com.cn/mapdata/' + map.path + '.js';
+    /*
+     * console.log(map)
+     */
+    // 动态加载地图数据文件并生成图表。
+    loadScript(url, function(){
+        // 生成随机数据
+        var mapdata = Highcharts.maps[map.path],
+            data = [];
+        Highcharts.each(mapdata.features, function(md, index) {
+
+            data.push({
+                'hc-key': md.properties['hc-key'],
+                value: this.data[index],
+            });
+        });
+        console.log(data)
+        // 初始化图表
+        $('#container').highcharts('Map', {
+            title : {
+                text : map.cname || map.name
+            },
+            subtitle : {
+                text : '地图数据： <a href="displayAllFileData.html"</a>'
+            },
+            mapNavigation: {
+                enabled: true,
+                buttonOptions: {
+                    verticalAlign: 'bottom'
+                }
+            },
+            colorAxis: {
+                min: 0,
+                stops: [
+                    [0, '#EFEFFF'],
+                    [0.5, Highcharts.getOptions().colors[0]],
+                    [1, Highcharts.Color(Highcharts.getOptions().colors[0]).brighten(-0.5).get()]
+                ]
+            },
+            series : [{
+                data : data,
+                mapData: mapdata,
+                joinBy: 'hc-key',
+                name: 'total_cases',
+                states: {
+                    hover: {
+                        color: '#a4edba'
+                    }
+                },
+                dataLabels: {
+                    enabled: false,
+                    format: '{point.name}'
+                }
+            }]
+        });
+    });
+
+</script>
+
+</body>
+</html>

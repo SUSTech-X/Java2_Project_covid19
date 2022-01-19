@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="../images/icon.ico" rel="icon" type="image/x-icon"/>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!--    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/charts.css/dist/charts.min.css">-->
+
+    <title>Covid-19 Data Analysis</title>
+</head>
+<body>
+
+<div id="app">
+
+
+    <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a class="active" href="displayAllFileData.html">FileData</a></li>
+        <li><a href="displayOutBreakData.html">OutBreak</a></li>
+        <li><a href="#Web2">Web2</a></li>
+        <li style="float:right"><a class="active" href="#about">About</a></li>
+    </ul>
+
+    <br>
+    <div style="height: 50px">
+        Enter the column you want to filter:
+        <select v-model="columnName">
+            <option v-for="item in options">{{item}}</option>
+        </select>
+    </div>
+
+    <div style="height: 50px">
+        Enter the value you want to search:
+        <select v-if="columnName==='location'" v-model="inputValue">
+            <option v-for="item in locations">{{item}}</option>
+        </select>
+
+        <select v-else-if="columnName==='continent'" v-model="inputValue">
+            <option v-for="item in continents">{{item}}</option>
+        </select>
+
+        <input v-else type="text" placeholder="inputValue" v-model="inputValue">
+
+        <el-date-picker v-if="columnName==='date'"
+                v-model="inputValue"
+                format="yyyy-MM-dd"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="select a date"
+        style="z-index: -1;">
+        </el-date-picker>
+
+
+    </div>
+
+    <a href="animation.html">
+        <input type="button" class="btn" value="Animation">
+    </a>
+
+    <input type="button" class="btn" value="search" @click="searchFileData">
+    <input type="button" class="btn" value="show-Last-One" @click="showLastOne">
+    <input type="button" class="btn" value="initial" @click="getAll">
+    <input type="button" class="btn" value="save" @click="saveText">
+    <input type="button" class="btn" value="chart" @click="chooseTableOrChart">
+
+    <el-tooltip :content="'chart or table'" placement="top">
+        <el-switch
+                v-model="display"
+                active-color="#13ce66"
+                inactive-color="#ff4949"
+                active-value="chart"
+                inactive-value="table"
+        style="z-index: -1;">
+        </el-switch>
+    </el-tooltip>
+
+
+    <input v-if="display==='chart'" type="button" class="btn" value="line_chart"
+           @click="createLineChart(columnName, inputValue)">
+    <input v-if="display==='chart'" type="button" class="btn" value="bar-chart"
+           @click="createBarChart(columnName, inputValue)">
+    <input v-if="display==='chart'" type="button" class="btn" value="pie-chart"
+           @click="createPieChart(columnName, inputValue)">
+    <a href="worldMap.html">
+        <input v-if="display==='chart'" type="button" class="btn" value="world-map">
+    </a>
+
+    <br>
+
+
+    <div v-if="display==='chart' && columnName==='location' && type === 'line'" style="width:1400px;height:600px;">
+        <canvas id="mylineChart"></canvas>
+    </div>
+    <div v-if="display==='chart' && columnName==='date' && type === 'bar'" style="width:1400px;height:600px;">
+        <canvas id="mybarChart"></canvas>
+    </div>
+    <div v-if="display==='chart' && columnName==='date' && type === 'pie'" style="width:1400px;height:600px;">
+        <canvas id="mypieChart"></canvas>
+    </div>
+
+    <div v-if="display==='table'">
+
+        <table class="hovertable">
+            <tr>
+                <th>iso_code<br><i class="el-icon-sort" @click="sort('iso_code')"></i>
+                </th>
+                <th>continent<br><i class="el-icon-sort"
+                                    @click="sort('continent')"></i></th>
+                <th>location<br><i class="el-icon-sort" @click="sort('location')">
+                </i></th>
+                <th style="min-width:80px !important">date<br><i class="el-icon-sort"  @click="sort('date')"></i>
+                <th>total_cases<br><i class="el-icon-sort"
+                                      @click="sort('total_cases')">
+                <th>new_cases<br><i class="el-icon-sort"
+                                    @click="sort('new_cases')">
+            </i></th>
+                <th>new_cases_smoothed<br><i class="el-icon-sort"
+                                             @click="sort('new_cases_smoothed')">
+                </i></th>
+                <th>total_deaths<br><i class="el-icon-sort"
+                                       @click="sort('total_deaths')"></i></th>
+                <th>new_deaths<br><i class="el-icon-sort"
+                                     @click="sort('new_deaths')"></i></th>
+                <th>new_deaths_smoothed<br><i class="el-icon-sort"
+                                              @click="sort('new_deaths_smoothed')"></i></th>
+
+
+<!--                <th v-if="total_cases_per_millionFileData === '0'">total_cases_per_million<br><i class="el-icon-delete"-->
+<!--                                                  @click="disappeartotal_cases_per_millionFileData"><br><i class="el-icon-delete"></i></th>-->
+
+                <th v-if="total_cases_per_millionFileData === '0'">total_cases_per_million<br><i class="el-icon-delete" @click="disappeartotal_cases_per_millionFileData"></i></th>
+
+                <th v-if="new_cases_per_millionFileData=== '0'">new_cases_per_million<br><i class="el-icon-delete"
+                                                                                            @click="disappearnew_cases_per_millionFileData"></i></th>
+                <th v-if="new_cases_smoothed_per_millionFileData=== '0'">new_cases_smoothed_per_million<br><i class="el-icon-delete"
+                                                                                                              @click="disappearnew_cases_smoothed_per_millionFileData"></i></th>
+                <th v-if="total_deaths_per_millionFileData=== '0'">total_deaths_per_million<br><i class="el-icon-delete"
+                                                                                                  @click="disappeartotal_deaths_per_millionFileData"></i></th>
+                <th v-if="new_deaths_per_millionFileData=== '0'">new_deaths_per_million<br><i class="el-icon-delete"
+                                                                                              @click="disappearnew_deaths_per_millionFileData"></i></th>
+                <th v-if="new_deaths_smoothed_per_millionFileData=== '0'">new_deaths_smoothed_per_million<br><i class="el-icon-delete"
+                                                                                                                @click="disappearnew_deaths_smoothed_per_millionFileData"></i></th>
+                <th v-if="reproduction_rateFileData=== '0'">reproduction_rate<br><i class="el-icon-delete"
+                                                                                    @click="disappearreproduction_rateFileData"></i></th>
+                <th v-if="icu_patientsFileData=== '0'">icu_patients<br><i class="el-icon-delete"
+                                                                          @click="disappearicu_patientsFileData"></i></th>
+                <th v-if="icu_patients_per_millionFileData=== '0'">icu_patients_per_million<br><i class="el-icon-delete"
+                                                                                                  @click="disappearicu_patients_per_millionFileData"></i></th>
+                <th v-if="hosp_patientsFileData=== '0'">hosp_patients<br><i class="el-icon-delete"
+                                                                            @click="disappearhosp_patientsFileData"></i></th>
+                <th v-if="hosp_patients_per_millionFileData=== '0'">hosp_patients_per_million<br><i class="el-icon-delete"
+                                                                                                    @click="disappearhosp_patients_per_millionFileData"></i></th>
+                <th v-if="weekly_icu_admissionsFileData=== '0'">weekly_icu_admissions<br><i class="el-icon-delete"
+                                                                                            @click="disappearweekly_icu_admissionsFileData"></i></th>
+                <th v-if="weekly_icu_admissions_per_millionFileData=== '0'">weekly_icu_admissions_per_million<br><i class="el-icon-delete"
+                                                                                                                    @click="disappearweekly_icu_admissions_per_millionFileData"></i></th>
+                <th v-if="weekly_hosp_admissionsFileData=== '0'">weekly_hosp_admissions<br><i class="el-icon-delete"
+                                                                                              @click="disappearweekly_hosp_admissionsFileData"></i></th>
+                <th v-if="weekly_hosp_admissions_per_millionFileData=== '0'">weekly_hosp_admissions_per_million<br><i class="el-icon-delete"
+                                                                                                                      @click="disappearweekly_hosp_admissions_per_millionFileData"></i></th>
+                <th v-if="new_testsFileData=== '0'">new_tests<br><i class="el-icon-delete"
+                                                                    @click="disappearnew_testsFileData"></i></th>
+                <th v-if="total_testsFileData=== '0'">total_tests<br><i class="el-icon-delete"
+                                                                        @click="disappeartotal_testsFileData"></i></th>
+                <th v-if="total_tests_per_thousandFileData=== '0'">total_tests_per_thousand<br><i class="el-icon-delete"
+                                                                                                  @click="disappeartotal_tests_per_thousandFileData"></i></th>
+                <th v-if="new_tests_per_thousandFileData=== '0'">new_tests_per_thousand<br><i class="el-icon-delete"
+                                                                                              @click="disappearnew_tests_per_thousandFileData"></i></th>
+                <th v-if="new_tests_smoothedFileData=== '0'">new_tests_smoothed<br><i class="el-icon-delete"
+                                                                                      @click="disappearnew_tests_smoothedFileData"></i></th>
+                <th v-if="new_tests_smoothed_per_thousandFileData=== '0'">new_tests_smoothed_per_thousand<br><i class="el-icon-delete"
+                                                                                                                @click="disappearnew_tests_smoothed_per_thousandFileData"></i></th>
+                <th v-if="positive_rateFileData=== '0'">positive_rate<br><i class="el-icon-delete"
+                                                                            @click="disappearpositive_rateFileData"></i></th>
+                <th v-if="tests_per_caseFileData=== '0'">tests_per_case<br><i class="el-icon-delete"
+                                                                              @click="disappeartests_per_caseFileData"></i></th>
+                <th v-if="tests_unitsFileData=== '0'">tests_units<br><i class="el-icon-delete"
+                                                                        @click="disappeartests_unitsFileData"></i></th>
+                <th v-if="total_vaccinationsFileData=== '0'">total_vaccinations<br><i class="el-icon-delete"
+                                                                                      @click="disappeartotal_vaccinationsFileData"></i></th>
+                <th v-if="people_vaccinatedFileData=== '0'">people_vaccinated<br><i class="el-icon-delete"
+                                                                                    @click="disappearpeople_vaccinatedFileData"></i></th>
+                <th v-if="people_fully_vaccinatedFileData=== '0'">people_fully_vaccinated<br><i class="el-icon-delete"
+                                                                                                @click="disappearpeople_fully_vaccinatedFileData"></i></th>
+                <th v-if="total_boostersFileData=== '0'">total_boosters<br><i class="el-icon-delete"
+                                                                              @click="disappeartotal_boostersFileData"></i></th>
+                <th v-if="new_vaccinationsFileData=== '0'">new_vaccinations<br><i class="el-icon-delete"
+                                                                                  @click="disappearnew_vaccinationsFileData"></i></th>
+                <th v-if="new_vaccinations_smoothedFileData=== '0'">new_vaccinations_smoothed<br><i class="el-icon-delete"
+                                                                                                    @click="disappearnew_vaccinations_smoothedFileData"></i></th>
+                <th v-if="total_vaccinations_per_hundredFileData=== '0'">total_vaccinations_per_hundred<br><i class="el-icon-delete"
+                                                                                                              @click="disappeartotal_vaccinations_per_hundredFileData"></i></th>
+                <th v-if="people_vaccinated_per_hundredFileData=== '0'">people_vaccinated_per_hundred<br><i class="el-icon-delete"
+                                                                                                            @click="disappearpeople_vaccinated_per_hundredFileData"></i></th>
+                <th v-if="people_fully_vaccinated_per_hundredFileData=== '0'">people_fully_vaccinated_per_hundred<br><i class="el-icon-delete"
+                                                                                                                        @click="disappearpeople_fully_vaccinated_per_hundredFileData"></i></th>
+                <th v-if="total_boosters_per_hundredFileData=== '0'">total_boosters_per_hundred<br><i class="el-icon-delete"
+                                                                                                      @click="disappeartotal_boosters_per_hundredFileData"></i></th>
+                <th v-if="new_vaccinations_smoothed_per_millionFileData=== '0'">new_vaccinations_smoothed_per_million<br><i class="el-icon-delete"
+                                                                                                                            @click="disappearnew_vaccinations_smoothed_per_millionFileData"></i></th>
+                <th v-if="stringency_indexFileData=== '0'">stringency_index<br><i class="el-icon-delete"
+                                                                                  @click="disappearstringency_indexFileData"></i></th>
+                <th v-if="populationFileData=== '0'">population<br><i class="el-icon-delete"
+                                                                      @click="disappearpopulationFileData"></i></th>
+                <th v-if="population_densityFileData=== '0'">population_density<br><i class="el-icon-delete"
+                                                                                      @click="disappearpopulation_densityFileData"></i></th>
+                <th v-if="median_ageFileData=== '0'">median_age<br><i class="el-icon-delete"
+                                                                      @click="disappearmedian_ageFileData"></i></th>
+                <th v-if="aged_65_olderFileData=== '0'">aged_65_older<br><i class="el-icon-delete"
+                                                                            @click="disappearaged_65_olderFileData"></i></th>
+                <th v-if="aged_70_olderFileData=== '0'">aged_70_older<br><i class="el-icon-delete"
+                                                                            @click="disappearaged_70_olderFileData"></i></th>
+                <th v-if="gdp_per_capitaFileData=== '0'">gdp_per_capita<br><i class="el-icon-delete"
+                                                                              @click="disappeargdp_per_capitaFileData"></i></th>
+                <th v-if="extreme_povertyFileData=== '0'">extreme_poverty<br><i class="el-icon-delete"
+                                                                                @click="disappearextreme_povertyFileData"></i></th>
+                <th v-if="cardiovasc_death_rateFileData=== '0'">cardiovasc_death_rate<br><i class="el-icon-delete"
+                                                                                            @click="disappearcardiovasc_death_rateFileData"></i></th>
+                <th v-if="diabetes_prevalenceFileData=== '0'">diabetes_prevalence<br><i class="el-icon-delete"
+                                                                                        @click="disappeardiabetes_prevalenceFileData"></i></th>
+                <th v-if="female_smokersFileData=== '0'">female_smokers<br><i class="el-icon-delete"
+                                                                              @click="disappearfemale_smokersFileData"></i></th>
+                <th v-if="male_smokersFileData=== '0'">male_smokers<br><i class="el-icon-delete"
+                                                                          @click="disappearmale_smokersFileData"></i></th>
+                <th v-if="handwashing_facilitiesFileData=== '0'">handwashing_facilities<br><i class="el-icon-delete"
+                                                                                              @click="disappearhandwashing_facilitiesFileData"></i></th>
+                <th v-if="hospital_beds_per_thousandFileData=== '0'">hospital_beds_per_thousand<br><i class="el-icon-delete"
+                                                                                                      @click="disappearhospital_beds_per_thousandFileData"></i></th>
+                <th v-if="life_expectancyFileData=== '0'">life_expectancy<br><i class="el-icon-delete"
+                                                                                @click="disappearlife_expectancyFileData"></i></th>
+                <th v-if="human_development_indexFileData=== '0'">human_development_index<br><i class="el-icon-delete"
+                                                                                                @click="disappearhuman_development_indexFileData"></i></th>
+                <th v-if="excess_mortality_cumulative_absoluteFileData=== '0'">excess_mortality_cumulative_absolute<br><i class="el-icon-delete"
+                                                                                                                          @click="disappearexcess_mortality_cumulative_absoluteFileData"></i></th>
+                <th v-if="excess_mortality_cumulativeFileData=== '0'">excess_mortality_cumulative<br><i class="el-icon-delete"
+                                                                                                        @click="disappearexcess_mortality_cumulativeFileData"></i></th>
+                <th v-if="excess_mortalityFileData=== '0'">excess_mortality<br><i class="el-icon-delete"
+                                                                                  @click="disappearexcess_mortalityFileData"></i></th>
+                <th v-if="excess_mortality_cumulative_per_millionFileData=== '0'">excess_mortality_cumulative_per_million<br><i class="el-icon-delete"
+                                                                                                                                @click="disappearexcess_mortality_cumulative_per_millionFileData"></i></th>
+
+            </tr>
+            <tr onmouseover="this.style.backgroundColor='#ffff66';" onmouseout="this.style.backgroundColor='#d4e3e5';"
+                v-for="item in arrInfo">
+                <td>{{item.iso_code}}</td>
+                <td>{{item.continent}}</td>
+                <td>{{item.location}}</td>
+                <td>{{item.date}}</td>
+                <td>{{item.total_cases}}</td>
+                <td>{{item.new_cases}}</td>
+                <td>{{item.new_cases_smoothed}}</td>
+                <td>{{item.total_deaths}}</td>
+                <td>{{item.new_deaths}}</td>
+                <td>{{item.new_deaths_smoothed}}</td>
+
+
+                <th v-if="total_cases_per_millionFileData=== '0'">{{item.total_cases_per_million}}</th>
+                <th v-if="new_cases_per_millionFileData=== '0'">{{item.new_cases_per_million}}</th>
+                <th v-if="new_cases_smoothed_per_millionFileData=== '0'">{{item.new_cases_smoothed_per_million}}</th>
+                <th v-if="total_deaths_per_millionFileData=== '0'">{{item.total_deaths_per_million}}</th>
+                <th v-if="new_deaths_per_millionFileData=== '0'">{{item.new_deaths_per_million}}</th>
+                <th v-if="new_deaths_smoothed_per_millionFileData=== '0'">{{item.new_deaths_smoothed_per_million}}</th>
+                <th v-if="reproduction_rateFileData=== '0'">{{item.reproduction_rate}}</th>
+                <th v-if="icu_patientsFileData=== '0'">{{item.icu_patients}}</th>
+                <th v-if="icu_patients_per_millionFileData=== '0'">{{item.icu_patients_per_million}}</th>
+                <th v-if="hosp_patientsFileData=== '0'">{{item.hosp_patients}}</th>
+                <th v-if="hosp_patients_per_millionFileData=== '0'">{{item.hosp_patients_per_million}}</th>
+                <th v-if="weekly_icu_admissionsFileData=== '0'">{{item.weekly_icu_admissions}}</th>
+                <th v-if="weekly_icu_admissions_per_millionFileData=== '0'">{{item.weekly_icu_admissions_per_million}}</th>
+                <th v-if="weekly_hosp_admissionsFileData=== '0'">{{item.weekly_hosp_admissions}}</th>
+                <th v-if="weekly_hosp_admissions_per_millionFileData=== '0'">{{item.weekly_hosp_admissions_per_million}}</th>
+                <th v-if="new_testsFileData=== '0'">{{item.new_tests}}</th>
+                <th v-if="total_testsFileData=== '0'">{{item.total_tests}}</th>
+                <th v-if="total_tests_per_thousandFileData=== '0'">{{item.total_tests_per_thousand}}</th>
+                <th v-if="new_tests_per_thousandFileData=== '0'">{{item.new_tests_per_thousand}}</th>
+                <th v-if="new_tests_smoothedFileData=== '0'">{{item.new_tests_smoothed}}</th>
+                <th v-if="new_tests_smoothed_per_thousandFileData=== '0'">{{item.new_tests_smoothed_per_thousand}}</th>
+                <th v-if="positive_rateFileData=== '0'">{{item.positive_rate}}</th>
+                <th v-if="tests_per_caseFileData=== '0'">{{item.tests_per_case}}</th>
+                <th v-if="tests_unitsFileData=== '0'">{{item.tests_units}}</th>
+                <th v-if="total_vaccinationsFileData=== '0'">{{item.total_vaccinations}}</th>
+                <th v-if="people_vaccinatedFileData=== '0'">{{item.people_vaccinated}}</th>
+                <th v-if="people_fully_vaccinatedFileData=== '0'">{{item.people_fully_vaccinated}}</th>
+                <th v-if="total_boostersFileData=== '0'">{{item.total_boosters}}</th>
+                <th v-if="new_vaccinationsFileData=== '0'">{{item.new_vaccinations}}</th>
+                <th v-if="new_vaccinations_smoothedFileData=== '0'">{{item.new_vaccinations_smoothed}}</th>
+                <th v-if="total_vaccinations_per_hundredFileData=== '0'">{{item.total_vaccinations_per_hundred}}</th>
+                <th v-if="people_vaccinated_per_hundredFileData=== '0'">{{item.people_vaccinated_per_hundred}}</th>
+                <th v-if="people_fully_vaccinated_per_hundredFileData=== '0'">{{item.people_fully_vaccinated_per_hundred}}</th>
+                <th v-if="total_boosters_per_hundredFileData=== '0'">{{item.total_boosters_per_hundred}}</th>
+                <th v-if="new_vaccinations_smoothed_per_millionFileData=== '0'">{{item.new_vaccinations_smoothed_per_million}}</th>
+                <th v-if="stringency_indexFileData=== '0'">{{item.stringency_index}}</th>
+                <th v-if="populationFileData=== '0'">{{item.population}}</th>
+                <th v-if="population_densityFileData=== '0'">{{item.population_density}}</th>
+                <th v-if="median_ageFileData=== '0'">{{item.median_age}}</th>
+                <th v-if="aged_65_olderFileData=== '0'">{{item.aged_65_older}}</th>
+                <th v-if="aged_70_olderFileData=== '0'">{{item.aged_70_older}}</th>
+                <th v-if="gdp_per_capitaFileData=== '0'">{{item.gdp_per_capita}}</th>
+                <th v-if="extreme_povertyFileData=== '0'">{{item.extreme_poverty}}</th>
+                <th v-if="cardiovasc_death_rateFileData=== '0'">{{item.cardiovasc_death_rate}}</th>
+                <th v-if="diabetes_prevalenceFileData=== '0'">{{item.diabetes_prevalence}}</th>
+                <th v-if="female_smokersFileData=== '0'">{{item.female_smokers}}</th>
+                <th v-if="male_smokersFileData=== '0'">{{item.male_smokers}}</th>
+                <th v-if="handwashing_facilitiesFileData=== '0'">{{item.handwashing_facilities}}</th>
+                <th v-if="hospital_beds_per_thousandFileData=== '0'">{{item.hospital_beds_per_thousand}}</th>
+                <th v-if="life_expectancyFileData=== '0'">{{item.life_expectancy}}</th>
+                <th v-if="human_development_indexFileData=== '0'">{{item.human_development_index}}</th>
+                <th v-if="excess_mortality_cumulative_absoluteFileData=== '0'">{{item.excess_mortality_cumulative_absolute}}</th>
+                <th v-if="excess_mortality_cumulativeFileData=== '0'">{{item.excess_mortality_cumulative}}</th>
+                <th v-if="excess_mortalityFileData=== '0'">{{item.excess_mortality}}</th>
+                <th v-if="excess_mortality_cumulative_per_millionFileData=== '0'">{{item.excess_mortality_cumulative_per_million}}</th>
+
+            </tr>
+
+        </table>
+    </div>
+    <!--    <div style="width:1500px;height:1000px;">-->
+    <!--        <canvas id="myChart"></canvas>-->
+    <!--    </div>-->
+
+</div>
+<script src="../js/displayAllFileData.js">
+</script>
+<script>
+    if (app.arrInfo.length === 0) {
+        app.getAll();
+    }
+
+</script>
+
+</body>
+</html>
